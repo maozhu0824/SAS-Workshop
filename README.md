@@ -51,9 +51,8 @@ Hard Rock Hotel Chicago                              0.24 4.3 1620 254
 run;
 
 
-# Read text from file: 
+# Read data from textfile: 
 infile ‘/home/mllam/SASWorkshop/HotelNearGleacher.txt';
-
 data workshop.HotelNearGleacher;
 infile '/home/mllam/SASWorkshop/HotelNearGleacher.txt';
 input HotelName $ 1-50 DistanceFromGleacher 54-57 Rating 59-61 NReviews 63-66 Price 68-70;
@@ -68,3 +67,15 @@ format NReviews 4.0;
 format Price dollar4.0;
 /* No DATALINES */
 run;
+
+# Read data from Excel:
+libname workshop '/home/mllam/SASWorkshop';
+proc import datafile = '/home/mllam/SASWorkshop/HotelNearGleacher.xlsx'
+            dbms = xlsx   #specifies the import file is a Excel 2007+ file
+            out = workshop.HotelNearGleacher  #specifies the output SAS dataset
+            replace;   #overwrites an existing SAS dataset
+            run;
+            
+            
+
+
