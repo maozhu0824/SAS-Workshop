@@ -1,0 +1,209 @@
+# Data Visualization
+libname Week2 '/home/mllam/SASWorkshop/Week 2';
+proc import datafile='/home/mllam/ClassData/311_Service_Requests_-_Pot_Holes_Reported.xlsx'
+            out = Week2.ChicagoPotHole
+            dbms=xlsx replace;
+run;
+
+# Create two subfolders Output and Image under SASWorkshop/Week 2
+ods html path = '/home/mllam/SASWorkshop/Week 2/Output'
+         gpath = '/home/mllam/SASWorkshop/Week 2/Image'; 
+ods graphics on;
+
+# Bar Chart
+# Variable of Interest: STATUS
+proc sgplot data = Week2.ChicagoPotHole;
+   vbar STATUS;
+   yaxis grid;
+run;
+
+
+# Bar Chart
+# Breakdown STATUS by Creation Month
+data Week2.ChicagoPotHole;
+   set Week2.ChicagoPotHole;
+   CREATION_MONTH = month(CREATION_DATE);
+   CREATION_YEAR = year(CREATION_DATE);
+run;
+
+
+# Bar Chart 
+proc sgplot data = Week2.ChicagoPotHole;
+   vbar status
+   / group = CREATION_MONTH
+     grouporder = ascending;
+   yaxis grid;
+run;
+
+
+#Line Graph 
+proc sgplot data = Week2.ChicagoPotHole;
+   vline CREATION_MONTH
+   / group = STATUS
+     grouporder = ascending;
+   yaxis grid;
+run;
+
+
+# Number of Reports by Ward
+proc sgplot data = Week2.ChicagoPotHole;
+   vbar WARD;
+   xaxis fitpolicy = stagger;
+   yaxis grid;
+run;
+
+
+# Rank in order 
+proc sgplot data = Week2.ChicagoPotHole;
+   where (1 <= ward and ward <= 50); 
+   vbar ward /
+      categoryorder = respdesc
+      stat = freq;
+   xaxis fitpolicy = stagger;
+   yaxis grid;
+run;
+ 
+
+# Percents of Reports by Month
+# Piechart 
+# SAS code using Graph Template Language:
+proc template;
+   define statgraph MyPieChart;
+   begingraph;
+      entrytitle "Pie Chart of Percents Pothole Reports";
+      layout region;
+#         piechart category = creation_month
+                  / datalabellocation=callout
+                    categorydirection=clockwise
+                    start=90 stat=pct
+                    othersliceopts=(type=percent 
+                    percent=5 label="Other Months");
+      endlayout;
+   endgraph;
+   end;
+run;
+
+proc sgrender data = Week2.ChicagoPotHole
+              template = MyPieChart;
+   where (1 <= Ward and Ward <= 50);
+   title "All Wards";
+run;
+
+# Does Ward 41 have more reports per month than overall?
+proc sgrender data = Week2.ChicagoPotHole
+              template = MyPieChart;
+   where (Ward = 41);
+   title "Ward 41";
+run;
+
+
+proc sgrender data = Week2.ChicagoPotHole
+              template = MyPieChart;
+   where (Ward = 46);
+   title "Ward 46";
+run;
+
+
+# Histogram
+# Density of report
+
+proc sgplot data = Week2.ChicagoPotHole;
+   where (1 <= ward and ward <= 50 and
+          CREATION_YEAR in (2012, 2013,2014)); 
+   histogram CREATION_DATE / scale = count;
+   yaxis grid;
+run;
+
+proc sgplot data = Week2.ChicagoPotHole;
+   where (1 <= ward and ward <= 50 and
+          CREATION_YEAR in (2012, 2013,2014)); 
+   histogram CREATION_DATE / scale = count;
+   density CREATION_DATE / scale = count type=kernel;
+   density CREATION_DATE / scale = count type=normal;
+   yaxis grid;
+run;
+
+
+# Dot Plot of Report Creation Dates since 2012
+proc sgplot data = Week2.ChicagoPotHole;
+   where (1 <= ward and ward <= 50 and
+          CREATION_YEAR in (2012, 2013, 2014)); 
+   dot CREATION_DATE;
+   xaxis grid;
+run;
+
+
+# Box Plot of Report Creation Month
+proc sgplot data = Week2.ChicagoPotHole;
+   where (1 <= ward and ward <= 50); 
+   hbox CREATION_MONTH;
+   xaxis grid values=(1 to 12 by 1);
+run;
+
+
+# Heatmap 
+proc template;
+   define statgraph HeatMap;
+   begingraph / designwidth=800 designheight= 400;
+      entrytitle "Status by Ward";
+      layout overlay /
+        xaxisopts = (type = linear
+                      linearopts = (integer=true
+                         tickvaluesequence=
+                            (start=1 end=50 increment=1))
+                      label = "Ward")
+        yaxisopts = (label = "Status");
+        heatmapparm x = Ward y = Status colorresponse = N_Report /
+                    name = "heatmapparm"
+                    xbinaxis = false
+                    ybinaxis = false;
+        continuouslegend "heatmapparm" /
+                         orient = vertical location = outside
+                         halign = center valign = center;
+      endlayout;
+   endgraph;
+   end;
+run;
+
+proc summary data = Week2.ChicagoPotHole nway;
+   where (1 <= ward and ward <= 50);
+   class ward status;
+   output out = NReport_Ward_Status (rename = (_FREQ_ = N_Report));
+run;
+
+proc sgrender data = NReport_Ward_Status 
+              template = HeatMap;
+run;
+
+
+
+# Creation Dates by Status: Panel Histogram
+proc sgpanel data = Week2.ChicagoPotHole;
+   where ('01JUL2013'd <= CREATION_DATE and
+          CREATION_DATE <= '30JUN2014'd);
+   panelby status / rows=2 columns=2;
+   histogram CREATION_DATE;
+run;
+
+
+# Grouped box-plot
+proc sgplot data = Week2.ChicagoPotHole;
+   where ('01JUL2013'd <= CREATION_DATE and
+          CREATION_DATE <= '30JUN2014'd);
+   hbox CREATION_DATE / group = Status;
+   xaxis grid;
+run;
+
+
+# Scatterplot: Latitude vs. Longitude
+proc sgplot data = Week2.ChicagoPotHole;
+   where ('01JUL2013'd <= CREATION_DATE and
+          CREATION_DATE <= '30JUN2014'd);
+   scatter x = LONGITUDE y = LATITUDE;
+   xaxis grid;
+   yaxis grid;
+run;
+
+
+
+
