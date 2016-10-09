@@ -249,6 +249,69 @@ run;
 # PROC UNIVARIATE provides descriptive statistics, draws histograms and other charts, and performs a host of statistics tests
 
 # How many distinct values in data?
+# Results (if data contains missing values, report will show number of types of missing values)
+proc freq data = workshop.HotelNearGleacher nlevels;
+   tables _ALL_ / noprint;  /* NOPRINT suppresses all frequency tables */
+run;
+
+# What percentage of hotels can I consider?
+proc freq data = workshop.HotelNearGleacher;
+   tables Consider;
+run;
+
+# Are hotels with good rating also more expensive, and vice-versa?
+proc corr data = workshop.HotelNearGleacher;
+   var Rating Price;
+run;
+
+# What are the price range and rating range of the hotels?
+proc univariate data = workshop.HotelNearGleacher
+                noprint;   /* No tabular output */
+   histogram Rating Price;
+run;
+
+
+# PROC TABULATE
+# PROC TABULATE displays descriptive statistics in tabular format, using some or all of the variables in a data set. You can create a variety of tables ranging from simple to highly customized (including colors). 
+proc format;  /* Define custom format, $ means format for character */
+   value $ Consider_FMT 'N' = 'No' 'Y' = 'Yes';
+run;
+
+proc tabulate data = workshop.HotelNearGleacher;
+   class Consider / descending;
+   var DistanceFromGleacher Rating NReviews ActualCostCAN;
+   table (n='Number of Hotels Used for Computing Averages')
+         (mean=''*f=4.1) * DistanceFromGleacher
+         (mean=''*f=4.1) * Rating 
+         (mean=''*f=4.0) * NReviews
+         (mean=''*f=dollar7.2) * ActualCostCAN, (Consider ALL);
+   format Consider $Consider_FMT.;
+   title "Averages about Hotels within 1/4 Miles from the Gleacher Center";
+run;
+
+
+# PROC SGPLOT
+# PROC SGPLOT creates a wide variety of plot types, and can overlay plots together to produce many different types of graphs.  It is now the recommended graphing tool in SAS.
+proc sgplot data = workshop.HotelNearGleacher;
+   scatter x = DistanceFromGleacher y = ActualCostCAN /
+      name ="DistCost"
+      group = Consider
+      datalabel = HotelName;
+   xaxis values = (0.1 to 0.3 by 0.05) grid;
+   yaxis values = (250 to 500 by 50) grid;
+   keylegend "DistCost " /
+      title = "Within Budget"
+      location = inside
+      position = topleft;
+   format Consider $Consider_FMT.;
+   title " ";
+run;
+
+
+
+
+
+
 
 
 
