@@ -1,0 +1,96 @@
+# Output Delivery System
+/*Output Delivery System*/
+ods trace on;
+proc freq data = sampsio.hmeq;
+	table BAD REASON;
+	table BAD* REASON / chisq;
+run;
+
+ods output OneWayFreqs = WORK.OneWayFreqs;
+proc freq data = sampsio.hmeq;
+	table BAD REASON;
+	table BAD * REASON;
+run;
+ods output close; 
+
+proc print data = WORK.OneWayFreqs;
+run;
+
+/*Heat Map of Correlation(Suggested Codes)*/
+/*Write the correlations and their association statistics to WORK.Pearsonorr*/
+ods output PearsonCorr = WORK.PearsonCorr;
+proc corr data = sashelp.cars;
+	var _NUMERIC_;
+run;
+ods output close;
+
+/*This is the default display*/
+proc print data = WORK.PearsonCorr;
+run;
+
+/*Apply the best format on the P: variables which contain the significances*/
+proc print data = WORK.PearsonCorr;
+	format P: best32.; /*scientific E counting ways*/
+run;
+
+/*Save the correlation coefficients to a separate data*/
+data WORK.CorrCoef;
+	set WORK.PearsonCorr;
+	rename Variable = RowVariable;
+	keep Variable MSRP Invoice EngineSize Cylinders Horsepower MPG_City
+	MPG_Highway Weight Wheelbase Length;
+run;
+
+/*Transpose the matrix of coefficient as columns because the default layout
+from CORR is no good for Heat Map*/
+proc sort data = WORK.CorrCoef;
+	by RowVariable;
+
+run;
+
+proc transpose data = WORK.CorrCoef
+	out = WORK.Data4HeatMap(rename = (COL1 = Correlation))
+	name = ColumnVariable;
+   by RowVariable;
+   var MSRP Invoice EngineSize Cylinders Horsepower MPG_City MPG_Highway
+       Weight Wheelbase Length;
+run;
+
+proc sort data = WORK.Data4HeatMap;
+	by RowVariable ColumnVariable;
+run;
+
+proc print data = WORK.Data4HeatMap;
+run;
+
+/*HeatMap*/
+proc template;
+	define statgraph HeatMap;
+	begingraph / designwidth = 800 designheight = 800;
+	 entrytitle "Correlation of Numeric Variables in SASHELP.CARS";
+	 layout overlay/
+	    xaxisopts = (label = "Row Variable")
+	    yaxisopts = (label = "Column Variable");
+	    heatmapparm x = RowVariable y = ColumnVariable colorresponse = Correlation/
+			name = "heatmapparm" 
+			xbinaxis = false 
+			ybinaxis = false;
+	    continuouslegend "heatmapparm"/
+			      orient = vertical location = outside
+			      halign = center valign = center
+			      valuecounthint = 9  title = 'Correlation';
+	    endlayout;
+          endgraph;
+          end;
+run;
+  
+proc sgrender data = WORK.Data4HeatMap
+template = HeatMap;
+run;
+
+
+	
+			
+	
+
+
