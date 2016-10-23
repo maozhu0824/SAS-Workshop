@@ -89,8 +89,94 @@ template = HeatMap;
 run;
 
 
+# Partition Data in SAS Studio	
+# HPSAMPLE procedure 
+PROC HPSAMPLE <options>;
+    CLASS variable <variable ... variable>;   
+    VAR variable <variable ... variable>;
+    TARGET variable <variable ... variable>;
+
+# HPSAMPLE options: DATA, OUT, PARTITION(_PARTITION_ = 1, observation is sampled,0 otherwise, without PARTITION, the OUT dataset contains
+only the sampled observations), PARTINDNAME(default is _PARTIND_), SEED, SAMPOBS=number, SAMPPCT = sample-percentage (either)   
+# CLASS: one or more classification variables 
+# VAR: one or more numeric variables (variable is specified either in CLASS or VAR, not both)
+# TARGET: classification variables used for stratification, or use _CHAR_, _NUMERIC_ short hands (up to 4 variables, maximum number of levels
+, distinct values in any target variable is 256.)
+
+proc hpsample data = sampsio.hmeq  out = hmeq_sample
+	seed = 60611  partition  samppct = 70;
+class JOB REASON BAD;
+var CLAGE CLNO DEBTINC DELINQ DEROG LOAN MORTDUE NINQ VALUE YOJ;
+run;
+
+/*Simple Random Sampling*/
+/*Inspect metadata of the output dataset: hmeq_sample*/
+proc contents data = hmeq_sample;
+run;
+
+/*Check distributions of the two partitions*/
+proc tabulate data = hmeq_sample;
+	class BAD _PARTIND_;
+	tables (_PARTIND_ ALL),
+	(colpctn = 'Distribution of _PARTIND_ within BAD')*(BAD ALL)
+	(rowpctn = 'Distribution of BAD within _PARTIND_')*(BAD ALL);
+run;
+
+
+/*Stratified Sampling*/
+/*70% of BAD = 0 observations go to partition as indicated by _PARTIND_ = 1*/
+/*70% OF BAD = 1 observations go to partition as indicated by _PARTIND_ = 1*/
+proc hpsample data = sampsio.hmeq  out = hmeq_sample
+	seed = 60611  partition  samppct = 70;
+	class JOB REASON BAD;
+	var CLAGE CLNO DEBTINC DELINQ DEROG LOAN MORTDUE NINQ VALUE YOJ;
+	target BAD;
+run; 
+/*Check distributions of the two partitions*/
+proc tabulate data = hmeq_sample;
+	class BAD _PARTIND_;
+	tables (_PARTIND_ ALL),
+	(colpctn = 'Distribution of _PARTIND_ within BAD') * (BAD ALL)
+	(rowpctn = 'Distribution of BAD within _PARTIND_')*(BAD ALL);
+run;
+
+
+/*Data Partition Exercise*/
+proc hpsample data = sashelp.cars   out=cars_sample
+	seed = 10152016  partition  samppct = 80;
+	class _CHAR_;
+	var _NUMERIC_;
+	target ORIGIN;
+run;
+
+proc format;
+	value PartFmt 0 = '0: Validation Partition' 1 = '1: Training Partition';
+run; 
+
+proc sgpanel data = cars_sample pctlevel = cell;
+	panelby _PARTIND_/rows = 2 columns = 1;
+	hbar ORIGIN / stat = percent;
+	format _PARTIND_ PartFmt.;
+run;
+
+
+
+
+
+
 	
 			
+	
+
+
+
+
+
+
+
+
+
+    
 	
 
 
